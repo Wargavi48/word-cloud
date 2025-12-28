@@ -1,53 +1,57 @@
-# Word Cloud Generator - Enhanced Version
+# Word Cloud Generator
 
-A React-based interactive word cloud generator with admin panel, now featuring five major improvements for better functionality, user experience, and performance.
+A React-based interactive word cloud generator with an admin panel.
 
-## 🚀 Five Key Improvements Implemented
+## 🚀 Key Features
 
-### 1. **Persistent Storage with localStorage**
-- **Problem**: Data lost on page refresh
-- **Solution**: Automatic saving to localStorage
-- **Features**:
-  - Auto-save all application state (words, settings, passcode)
-  - Configurable save intervals (default: 5 seconds)
-  - Manual save/load controls
-  - Data migration between sessions
-  - Export/import functionality (JSON format)
+### **Interactive Word Cloud**
+- **Dynamic Visualization**: Uses `react-wordcloud` to generate beautiful and responsive word clouds.
+- **Custom Styling**: Words are colored with a predefined palette for a vibrant look.
+- **Font Customization**: The admin panel allows you to change the font of the word cloud, with a selection of Google Fonts.
+- **Fullscreen Mode**: View the word cloud in fullscreen for a more immersive experience.
+- **Save as Image**: Export the word cloud as a PNG image, with the background color matching the current theme.
 
-### 2. **Enhanced Image Export with html2canvas**
-- **Problem**: Basic canvas export didn't capture actual word cloud layout
-- **Solution**: Integrated html2canvas for pixel-perfect exports
-- **Features**:
-  - High-resolution PNG exports (up to 4K)
-  - Multiple export formats (PNG, JPEG, SVG)
-  - Customizable export settings (background, quality, scale)
-  - Batch export for different layouts
-  - Progress indicators during export
+### **Admin Panel**
+- **Word Moderation**: Approve or reject words before they appear in the word cloud.
+- **Content Settings**: Set character limits and exclude words.
+- **Theme Management**:
+    - **Light/Dark Mode**: Manually switch between light and dark themes.
+    - **System Preference**: Automatically detects and applies the user's system theme preference.
+- **Security**: Passcode-protected admin panel.
 
-### 3. **Advanced Word Cloud Layout Algorithm**
-- **Problem**: Basic random placement caused overlaps and poor visual distribution
-- **Solution**: Implemented Wordle-inspired spiral placement algorithm
-- **Features**:
-  - Collision detection with grid optimization
-  - Logarithmic font scaling for better visual hierarchy
-  - Golden angle distribution for optimal spacing
-  - Dynamic color schemes based on word frequency
-  - Configurable layout parameters (density, rotation range)
+### **User Interaction**
+- **Simple Submission**: Submit words with a single press of the "Enter" key.
+- **Real-time Feed**: See new words appear in a real-time feed.
 
-### 4. **User Categories/Tags System**
-- **Problem**: No organization or filtering of words
-- **Solution**: Added category/tag system with filtering
-- **Features**:
-  - Predefined categories (Technology, Business, Creative, etc.)
-  - Custom tag creation
-  - Multi-category assignment
-  - Filter word cloud by category/tag
-  - Category-based color coding
-  - Statistics by category
+## 🛠️ Built With
 
-### 5. **Real-time Updates with Debouncing**
-- **Problem**: Performance issues with frequent updates
-- **Solution**: Implemented debounced updates and WebSocket simulation
+*   [React](https://reactjs.org/)
+*   [react-wordcloud](https://www.npmjs.com/package/react-wordcloud)
+*   [html2canvas](https://html2canvas.hertzen.com/)
+*   [Tailwind CSS](https://tailwindcss.com/)
+*   [Lucide React](https://lucide.dev/guide/react)
+
+## 📦 Installation
+
+1.  Clone the repository:
+    ```bash
+    git clone https://github.com/your-username/word-cloud-generator.git
+    ```
+2.  Install dependencies:
+    ```bash
+    npm install
+    ```
+3.  Start the development server:
+    ```bash
+    npm start
+    ```
+
+## Usage
+
+1.  Open the application in your browser.
+2.  Submit words using the submission form.
+3.  Click "Show Word Cloud" to view the visualization.
+4.  Access the admin panel to moderate words, change settings, and customize the word cloud.
 - **Features**:
   - Debounced word cloud generation (300ms delay)
   - Optimized state updates with useMemo/useCallback
