@@ -1,6 +1,6 @@
 # Word Cloud Generator
 
-A React-based interactive word cloud generator with an admin panel.
+A React-based interactive word cloud generator with an admin panel. This project is built with a component-based architecture, utilizing React Hooks for state management.
 
 ## 🚀 Key Features
 
@@ -18,14 +18,24 @@ A React-based interactive word cloud generator with an admin panel.
     - **Light/Dark Mode**: Manually switch between light and dark themes.
     - **System Preference**: Automatically detects and applies the user's system theme preference.
 - **Security**: Passcode-protected admin panel.
+- **Stats Panel**: View statistics on approved words, pending words, and total responses.
 
 ### **User Interaction**
 - **Simple Submission**: Submit words with a single press of the "Enter" key.
 - **Real-time Feed**: See new words appear in a real-time feed.
 
+### **Component-Based Architecture**
+The application is built with a clear, component-based architecture:
+- `AdminSidebar.js`: Manages the admin panel.
+- `WordCloudVisualization.js`: Renders the word cloud.
+- `SubmissionForm.js`: Handles user input.
+- `ThemeManager.js`: Manages the application's theme.
+- `RealtimeWordFeed.js`: Displays a real-time feed of submitted words.
+- `StatsPanel.js`: Displays statistics on word submissions.
+
 ## 🛠️ Built With
 
-*   [React](https://reactjs.org/)
+*   [React](https://reactjs.org/) (with React Hooks for state management)
 *   [react-wordcloud](https://www.npmjs.com/package/react-wordcloud)
 *   [html2canvas](https://html2canvas.hertzen.com/)
 *   [Tailwind CSS](https://tailwindcss.com/)
@@ -264,12 +274,12 @@ MIT License - see LICENSE file for details
 ## 📞 Support
 
 For issues, questions, or suggestions:
-1. Check the [GitHub Issues](https://github.com/your-repo/issues)
+1. Check the [GitHub Issues](https://github.com/Wargavi48/word-cloud/issues)
 2. Review the documentation
-3. Contact the maintainers
+3. Contact the maintainers : [wargadev](mailto:wargadev@gmail.com)
 
 ---
 
 **Version**: 2.0.0  
-**Last Updated**: 2024  
-**Maintainer**: Word Cloud Team
+**Last Updated**: 2025  
+**Maintainer**: Wargavi48 Team
