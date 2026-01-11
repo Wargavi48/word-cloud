@@ -2,25 +2,42 @@
   "name": "word-cloud-generator",
   "version": "1.0.0",
   "description": "Interactive Word Cloud Generator with Admin Panel",
-  "main": "src/index.js",
+  "main": "server.js",
+  "proxy": "http://localhost:5000",
   "scripts": {
     "start": "react-scripts start",
+    "dev": "bun run start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "bun:start": "bunx serve public",
+    "bun:dev": "bun run start",
+    "bun:build": "bun run build",
+    "server": "node server.js",
+    "dev:server": "nodemon server.js",
+    "dev:client": "react-scripts start",
+    "dev:full": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "heroku-postbuild": "npm run build"
   },
   "dependencies": {
     "react": "^16.13.0",
     "react-dom": "^16.13.0",
     "lucide-react": "^0.263.1",
     "html2canvas": "^1.4.1",
-    "react-wordcloud": "^1.2.7"
+    "react-wordcloud": "^1.2.7",
+    "express": "^4.18.2",
+    "sqlite3": "^5.1.6",
+    "bcrypt": "^5.1.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1"
   },
   "devDependencies": {
     "react-scripts": "5.0.1",
     "tailwindcss": "^3.3.0",
     "autoprefixer": "^10.4.14",
-    "postcss": "^8.4.24"
+    "postcss": "^8.4.24",
+    "nodemon": "^3.0.1",
+    "concurrently": "^8.2.0"
   },
   "browserslist": {
     "production": [

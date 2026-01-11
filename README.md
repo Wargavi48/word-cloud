@@ -49,11 +49,19 @@ The application is built with a clear, component-based architecture:
     ```
 2.  Install dependencies:
     ```bash
+    # Using npm
     npm install
+
+    # Or using Bun (recommended)
+    bun install
     ```
 3.  Start the development server:
     ```bash
+    # Using npm
     npm start
+
+    # Or using Bun (faster)
+    bun run dev
     ```
 
 ## Usage
@@ -271,6 +279,32 @@ MIT License - see LICENSE file for details
 - **Tailwind CSS** - For rapid UI development
 - **Lucide Icons** - For beautiful iconography
 
+## 🚀 Bun Support
+
+This project has full Bun compatibility for faster development and installation.
+
+### Bun Installation & Setup
+```bash
+# Install Bun globally (if not already installed)
+# Visit https://bun.sh/docs/installation for installation methods
+
+# Install dependencies with Bun (much faster than npm)
+bun install
+
+# Start development server with Bun
+bun run dev
+
+# Build for production with Bun
+bun run build
+```
+
+### Bun-Specific Commands
+- `bun run dev` - Start development server (equivalent to `npm start`)
+- `bun run build` - Build for production (equivalent to `npm run build`)
+- `bun run test` - Run tests (equivalent to `npm test`)
+
+Bun offers significantly faster dependency installation and script execution compared to traditional npm/yarn workflows.
+
 ## 📞 Support
 
 For issues, questions, or suggestions:
@@ -280,6 +314,6 @@ For issues, questions, or suggestions:
 
 ---
 
-**Version**: 2.0.0  
-**Last Updated**: 2025  
+**Version**: 2.0.0
+**Last Updated**: 2025
 **Maintainer**: Wargavi48 Team

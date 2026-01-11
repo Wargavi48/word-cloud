@@ -66,7 +66,7 @@ const App = () => {
   const [showRealtimeFeed, setShowRealtimeFeed] = useState(false);
   const [isFeedFullScreen, setIsFeedFullScreen] = useState(false);
   const [realtimeWords, setRealtimeWords] = useState([]);
-  const [selectedFont, setSelectedFont] = useState("Roboto"); // New state for selected font
+  const [selectedFont, setSelectedFont] = useState("Oswald"); // New state for selected font
   const wordCloudRef = useRef(null);
   const realtimeFeedRef = useRef(null);
   const wordCloudCaptureRef = useRef(null); // New ref for capturing word cloud area
@@ -80,63 +80,51 @@ const App = () => {
     }
   };
 
-  // Initialize with mock data and default passcode
+  // Fetch data from backend on initial load
   useEffect(() => {
-    const mockResponses = [
-      {
-        id: 1,
-        text: "Innovation",
-        status: "approved",
-        timestamp: new Date(Date.now() - 86400000),
-      },
-      {
-        id: 2,
-        text: "Creativity",
-        status: "approved",
-        timestamp: new Date(Date.now() - 172800000),
-      },
-      {
-        id: 3,
-        text: "Technology",
-        status: "approved",
-        timestamp: new Date(Date.now() - 259200000),
-      },
-      {
-        id: 4,
-        text: "Collaboration",
-        status: "approved",
-        timestamp: new Date(Date.now() - 345600000),
-      },
-    ];
-    const mockPending = [
-      { id: 5, text: "Awesome", status: "pending", timestamp: new Date() },
-      {
-        id: 6,
-        text: "Fantastic",
-        status: "pending",
-        timestamp: new Date(Date.now() - 3600000),
-      },
-    ];
+    const fetchData = async () => {
+      try {
+        // Fetch all words
+        const wordsResponse = await fetch('/api/words');
+        const allWords = await wordsResponse.json();
 
-    setResponses(mockResponses);
-    setPendingWords(mockPending);
-    setModeratedWords(mockResponses.filter((r) => r.status === "approved"));
-    setRealtimeWords(mockResponses.filter((r) => r.status === "approved")); // Initialize realtime feed with approved words
-    setAdminPasscode("admin123");
-    setTempSettings({
-      excludeWords: "",
-      characterLimit: 50,
-    });
-    generateWordCloud(mockResponses.filter((r) => r.status === "approved"));
+        // Separate words by status
+        const responses = allWords;
+        const pendingWords = allWords.filter(w => w.status === 'pending');
+        const moderatedWords = allWords.filter(w => w.status === 'approved');
 
-    // Load saved preferences
-    const savedModeration =
-      localStorage.getItem("wordCloudModeration") !== "false"; // default to true
-    const savedAdminAccess =
-      localStorage.getItem("adminAccessGranted") === "true"; // Load admin access
+        setResponses(responses);
+        setPendingWords(pendingWords);
+        setModeratedWords(moderatedWords);
+        setRealtimeWords(moderatedWords); // Initialize realtime feed with approved words
 
-    setModerationEnabled(savedModeration);
-    setAdminAccessGranted(savedAdminAccess);
+        // Generate word cloud from approved words
+        generateWordCloud(moderatedWords);
+
+        // Fetch admin settings
+        const settingsResponse = await fetch('/api/settings');
+        const settings = await settingsResponse.json();
+
+        setAdminSettings({
+          excludeWords: settings.exclude_words ? settings.exclude_words.split(',') : [],
+          characterLimit: settings.character_limit,
+          excludeWordsEnabled: settings.exclude_words_enabled === 1,
+          characterLimitEnabled: settings.character_limit_enabled === 1,
+          moderationEnabled: settings.moderation_enabled === 1,
+        });
+
+        setModerationEnabled(settings.moderation_enabled === 1);
+        setTempSettings(prev => ({
+          ...prev,
+          excludeWords: settings.exclude_words || "",
+          characterLimit: settings.character_limit,
+        }));
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+
+    fetchData();
 
     window.addEventListener("resize", handleResize);
     // Initial check
@@ -145,19 +133,16 @@ const App = () => {
     return () => {
       window.removeEventListener("resize", handleResize);
     };
-  }, [adminSidebarOpen, showAdminPanel]);
+  }, []);
 
-  // New useEffect for initial theme and admin access loading
+  // New useEffect for initial theme loading
   useEffect(() => {
     const savedModeration =
       localStorage.getItem("wordCloudModeration") !== "false";
     const savedTheme = localStorage.getItem("wordCloudTheme");
-    const savedAdminAccess =
-      localStorage.getItem("adminAccessGranted") === "true";
 
     // ThemeManager will handle handleThemeChange call
     setModerationEnabled(savedModeration);
-    setAdminAccessGranted(savedAdminAccess);
   }, []); // Empty dependency array means this runs once on mount
 
   const generateWordCloud = (approvedWords) => {
@@ -172,126 +157,187 @@ const App = () => {
     });
 
     const wordArray = Object.entries(wordFrequency)
-      .map(([word, count]) => ({ word, count }))
+      .map(([word, count]) => ({
+        word,
+        count: 1 + (count - 1) * 0.1, // Addition: starts at 1, adds 0.1 for each additional occurrence after the first
+      }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 50);
 
     setWordCloudData(wordArray);
   };
 
-  const validateSubmission = (text) => {
-    if (
-      adminSettings.characterLimitEnabled &&
-      text.length > adminSettings.characterLimit
-    ) {
-      return {
-        valid: false,
-        message: `Text exceeds ${adminSettings.characterLimit} character limit`,
-      };
-    }
+  const validateSubmission = async (text) => {
+    // Fetch current settings from backend
+    try {
+      const settingsResponse = await fetch('/api/settings');
+      const settings = await settingsResponse.json();
 
-    if (
-      adminSettings.excludeWordsEnabled &&
-      adminSettings.excludeWords.length > 0
-    ) {
-      const lowercaseText = text.toLowerCase();
-      const excludedWord = adminSettings.excludeWords.find((word) =>
-        lowercaseText.includes(word.toLowerCase())
-      );
-      if (excludedWord) {
+      if (settings.character_limit_enabled && text.length > settings.character_limit) {
         return {
           valid: false,
-          message: `Text contains excluded word: "${excludedWord}"`,
+          message: `Text exceeds ${settings.character_limit} character limit`,
         };
       }
+
+      if (settings.exclude_words_enabled && settings.exclude_words) {
+        const excludeWords = settings.exclude_words.split(',').map(word => word.trim().toLowerCase());
+        const lowercaseText = text.toLowerCase();
+        const excludedWord = excludeWords.find(word => lowercaseText.includes(word));
+        if (excludedWord) {
+          return {
+            valid: false,
+            message: `Text contains excluded word: "${excludedWord}"`,
+          };
+        }
+      }
+    } catch (error) {
+      console.error('Error validating submission:', error);
     }
 
     return { valid: true, message: "" };
   };
 
-  const handleSubmit = (e) => {
-    // e.preventDefault(); // No longer needed as form submission is handled by onKeyPress in input
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     if (!newResponse.trim()) return;
 
-    const validation = validateSubmission(newResponse);
+    const validation = await validateSubmission(newResponse);
     if (!validation.valid) {
       alert(validation.message);
       return;
     }
 
-    const newWord = {
-      id: Date.now(),
-      text: newResponse.trim(),
-      status: moderationEnabled ? "pending" : "approved",
-      timestamp: new Date(),
-    };
+    try {
+      const response = await fetch('/api/words', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text: newResponse.trim() }),
+      });
 
-    if (moderationEnabled) {
-      // Add to pending queue for moderation
-      setPendingWords([...pendingWords, newWord]);
-    } else {
-      // Auto-approve when moderation is disabled
-      const updatedResponses = [...responses, newWord];
-      setResponses(updatedResponses);
-      setModeratedWords(
-        updatedResponses.filter((r) => r.status === "approved")
-      );
-      generateWordCloud(
-        updatedResponses.filter((r) => r.status === "approved")
-      );
-    }
+      if (response.ok) {
+        const newWord = await response.json();
 
-    // Always add to realtime feed, regardless of moderation status
-    setRealtimeWords((prevWords) => [...prevWords, newWord]);
-    setNewResponse("");
-  };
+        // Update local state
+        setResponses(prev => [...prev, newWord]);
 
-  const approveWord = (wordId) => {
-    const wordToApprove = pendingWords.find((w) => w.id === wordId);
-    if (wordToApprove) {
-      const validation = validateSubmission(wordToApprove.text);
-      if (!validation.valid) {
-        alert(`Cannot approve: ${validation.message}`);
-        return;
+        // If moderation is enabled, add to pending words; otherwise, add to moderated words
+        if (moderationEnabled) {
+          setPendingWords(prev => [...prev, newWord]);
+        } else {
+          setModeratedWords(prev => [...prev, newWord]);
+          setRealtimeWords(prev => [...prev, newWord]);
+          generateWordCloud([...moderatedWords, newWord]);
+        }
+
+        setNewResponse("");
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Failed to submit word');
       }
-
-      const updatedResponses = [
-        ...responses,
-        { ...wordToApprove, status: "approved" },
-      ];
-      setResponses(updatedResponses);
-      setModeratedWords(
-        updatedResponses.filter((r) => r.status === "approved")
-      );
-      setPendingWords(pendingWords.filter((w) => w.id !== wordId));
-      setRealtimeWords((prevWords) => [
-        ...prevWords,
-        { ...wordToApprove, status: "approved" },
-      ]); // Add to realtime feed
-      generateWordCloud(
-        updatedResponses.filter((r) => r.status === "approved")
-      );
+    } catch (error) {
+      console.error('Error submitting word:', error);
+      alert('Network error. Please try again.');
     }
   };
 
-  const rejectWord = (wordId) => {
-    setPendingWords(pendingWords.filter((w) => w.id !== wordId));
+  const approveWord = async (wordId) => {
+    try {
+      const response = await fetch(`/api/words/${wordId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: 'approved' }),
+      });
+
+      if (response.ok) {
+        // Update local state
+        const wordToApprove = pendingWords.find(w => w.id === wordId);
+        if (wordToApprove) {
+          const updatedWord = { ...wordToApprove, status: 'approved' };
+
+          setResponses(prev => prev.map(r => r.id === wordId ? updatedWord : r));
+          setPendingWords(prev => prev.filter(w => w.id !== wordId));
+          setModeratedWords(prev => [...prev, updatedWord]);
+          setRealtimeWords(prev => [...prev, updatedWord]);
+          generateWordCloud([...moderatedWords, updatedWord]);
+        }
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Failed to approve word');
+      }
+    } catch (error) {
+      console.error('Error approving word:', error);
+      alert('Network error. Please try again.');
+    }
   };
 
-  const removeApprovedWord = (wordId) => {
-    const updatedResponses = responses.filter((r) => r.id !== wordId);
-    setResponses(updatedResponses);
-    setModeratedWords(updatedResponses.filter((r) => r.status === "approved"));
-    generateWordCloud(updatedResponses.filter((r) => r.status === "approved"));
+  const rejectWord = async (wordId) => {
+    try {
+      const response = await fetch(`/api/words/${wordId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        // Update local state
+        setPendingWords(prev => prev.filter(w => w.id !== wordId));
+        setResponses(prev => prev.filter(r => r.id !== wordId));
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Failed to reject word');
+      }
+    } catch (error) {
+      console.error('Error rejecting word:', error);
+      alert('Network error. Please try again.');
+    }
   };
 
-  const resetAll = () => {
-    if (window.confirm("Are you sure you want to reset all data?")) {
-      setResponses([]);
-      setPendingWords([]);
-      setModeratedWords([]);
-      setWordCloudData([]);
-      setShowWordCloud(false);
+  const removeApprovedWord = async (wordId) => {
+    try {
+      const response = await fetch(`/api/words/${wordId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        // Update local state
+        setResponses(prev => prev.filter(r => r.id !== wordId));
+        setModeratedWords(prev => prev.filter(r => r.id !== wordId));
+        generateWordCloud(moderatedWords.filter(r => r.id !== wordId));
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Failed to remove word');
+      }
+    } catch (error) {
+      console.error('Error removing word:', error);
+      alert('Network error. Please try again.');
+    }
+  };
+
+  const resetAll = async () => {
+    if (window.confirm("Are you sure you want to reset all data? This cannot be undone.")) {
+      try {
+        const response = await fetch('/api/words', {
+          method: 'DELETE',
+        });
+
+        if (response.ok) {
+          setResponses([]);
+          setPendingWords([]);
+          setModeratedWords([]);
+          setWordCloudData([]);
+          setRealtimeWords([]);
+          setShowWordCloud(false);
+        } else {
+          const error = await response.json();
+          alert(error.error || 'Failed to reset data');
+        }
+      } catch (error) {
+        console.error('Error resetting data:', error);
+        alert('Network error. Please try again.');
+      }
     }
   };
 
@@ -307,45 +353,88 @@ const App = () => {
     setAdminSidebarOpen(false);
   };
 
-  const updateApprovedWord = (wordId, newText) => {
-    const validation = validateSubmission(newText);
+  const updateApprovedWord = async (wordId, newText) => {
+    const validation = await validateSubmission(newText);
     if (!validation.valid) {
       alert(`Cannot update: ${validation.message}`);
       return;
     }
 
-    const updatedResponses = responses.map((r) =>
+    // For now, we'll just update the local state since we don't have an endpoint to update the word text
+    // In a real implementation, you'd need a PUT endpoint for updating word text
+    const updatedResponses = responses.map(r =>
       r.id === wordId ? { ...r, text: newText } : r
     );
+
     setResponses(updatedResponses);
-    setModeratedWords(updatedResponses.filter((r) => r.status === "approved"));
-    generateWordCloud(updatedResponses.filter((r) => r.status === "approved"));
+    setModeratedWords(updatedResponses.filter(r => r.status === 'approved'));
+    generateWordCloud(updatedResponses.filter(r => r.status === 'approved'));
   };
 
-  const handleAdminAccess = () => {
-    if (enteredPasscode === adminPasscode) {
-      setAdminAccessGranted(true);
-      setShowAdminPanel(true); // Open admin panel after successful login
-      // Save admin access granted state to localStorage
-      localStorage.setItem("adminAccessGranted", "true");
-    } else {
-      alert("Incorrect passcode.");
-      setEnteredPasscode("");
+  const handleAdminAccess = async () => {
+    try {
+      const response = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: 'admin', // Using default admin username
+          password: enteredPasscode
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setAdminAccessGranted(true);
+        setShowAdminPanel(true); // Open admin panel after successful login
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Incorrect passcode.');
+        setEnteredPasscode("");
+      }
+    } catch (error) {
+      console.error('Error logging in:', error);
+      alert('Network error. Please try again.');
     }
   };
 
-  const saveAdminSettings = () => {
+  const saveAdminSettings = async () => {
     const excludeWordsArray = tempSettings.excludeWords
       .split(",")
       .map((word) => word.trim())
       .filter((word) => word.length > 0);
 
-    setAdminSettings({
-      ...adminSettings,
-      excludeWords: excludeWordsArray,
-      characterLimit: parseInt(tempSettings.characterLimit) || 50,
-    });
-    alert("Settings saved successfully!");
+    try {
+      const response = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          excludeWords: excludeWordsArray,
+          characterLimit: parseInt(tempSettings.characterLimit) || 50,
+          excludeWordsEnabled: adminSettings.excludeWordsEnabled,
+          characterLimitEnabled: adminSettings.characterLimitEnabled,
+          moderationEnabled: moderationEnabled,
+        }),
+      });
+
+      if (response.ok) {
+        setAdminSettings({
+          ...adminSettings,
+          excludeWords: excludeWordsArray,
+          characterLimit: parseInt(tempSettings.characterLimit) || 50,
+        });
+        alert("Settings saved successfully!");
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Failed to save settings');
+      }
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      alert('Network error. Please try again.');
+    }
   };
 
   const updatePasscode = () => {
@@ -358,25 +447,60 @@ const App = () => {
     }
   };
 
-  const toggleModeration = () => {
+  const toggleModeration = async () => {
     const newModeration = !moderationEnabled;
     setModerationEnabled(newModeration);
     localStorage.setItem("wordCloudModeration", newModeration.toString());
 
-    if (!newModeration && pendingWords.length > 0) {
-      // Auto-approve all pending words when turning moderation off
-      const updatedResponses = [
-        ...responses,
-        ...pendingWords.map((w) => ({ ...w, status: "approved" })),
-      ];
-      setResponses(updatedResponses);
-      setModeratedWords(
-        updatedResponses.filter((r) => r.status === "approved")
-      );
-      setPendingWords([]);
-      generateWordCloud(
-        updatedResponses.filter((r) => r.status === "approved")
-      );
+    // Update settings in backend
+    try {
+      const settingsResponse = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...adminSettings,
+          excludeWords: adminSettings.excludeWords,
+          characterLimit: adminSettings.characterLimit,
+          excludeWordsEnabled: adminSettings.excludeWordsEnabled,
+          characterLimitEnabled: adminSettings.characterLimitEnabled,
+          moderationEnabled: newModeration,
+        }),
+      });
+
+      if (settingsResponse.ok) {
+        if (!newModeration && pendingWords.length > 0) {
+          // Auto-approve all pending words when turning moderation off
+          for (const word of pendingWords) {
+            await fetch(`/api/words/${word.id}/status`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ status: 'approved' }),
+            });
+          }
+
+          const updatedResponses = [
+            ...responses,
+            ...pendingWords.map(w => ({ ...w, status: 'approved' }))
+          ];
+
+          setResponses(updatedResponses);
+          setModeratedWords([
+            ...moderatedWords,
+            ...pendingWords.map(w => ({ ...w, status: 'approved' }))
+          ]);
+          setPendingWords([]);
+          generateWordCloud([
+            ...moderatedWords,
+            ...pendingWords.map(w => ({ ...w, status: 'approved' }))
+          ]);
+        }
+      }
+    } catch (error) {
+      console.error('Error updating moderation settings:', error);
     }
   };
 
